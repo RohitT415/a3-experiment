@@ -1,21 +1,8 @@
-GitHub Details
----
-
-- Fork the GitHub Repository. You now have a copy associated with your username.
-- Make changes to index.html to fulfill the project requirements. 
-- Make sure your "master" branch matches your "gh-pages" branch. See the GitHub Guides referenced above if you need help.
-- Edit this README.md with a link to your gh-pages site: e.g. http://YourUsernameGoesHere.github.io/Experiment/index.html
-- Replace this file (README.md) with your writeup and Design/Technical achievements.
-- To submit, make a [Pull Request](https://help.github.com/articles/using-pull-requests/) on the original repository.
-- Name your submission using the following scheme: 
-```
-a3-FirstLastnameMember1-FirstLastnameMember2-FirstLastnameMember3-...
-```
 # A3 Experiment
 
 **Team Granite: Max McCalla, Rachel Conca, Elias Montas, and Rohit Tallapragada**
 
-*Experiment link: https://maxmccalla.github.io/CS4804-ReVisIt/*
+*Experiment Link: https://maxmccalla.github.io/CS4804-ReVisIt/*
 
 *ReVISit Fork: https://github.com/MaxMcCalla/CS4804-ReVisIt*
 
@@ -41,3 +28,40 @@ Once the site was all set up, we hosted our experiment using GitHub Pages and se
 
 Once all the participants had completed the experiment and sent their results to the group, we compiled them into a single CSV file that we used for analysis.
 
+## Creating the Results Visualization
+
+After compling the data into a single CSV file using Python, we cleaned the data by removing any irrelevant columns and adding a column for the type of chart (normal, diverging, and stacked) before saving that file and importing it into the HTML file to be visualized using D3.
+
+We decided to use parallel box plots to visualize our data since it would be easy to see differences in distributions between the three different types of graphs. We graphed the three box plots next to each other, and added the points from individual trials over the boxplots with a slight jitter to see more individual data as well as the full distributions.
+
+## Analyzing Our Results
+
+Based on the data, there wasn't too much difference in how people perceived differences in sizes between the different styles of bar charts. The median log base 2 error for each of the three styles was basically the same, and the only noticable difference between the three types of charts was in the max values and third quartiles since there was more individual point variation in the upper ranges of errors compared to the lower ranges.
+
+## Possible Limitations
+
+Looking at our experimental design, there were a few things we noticed after running the experiment and analyzing the data that we felt could be improved in later iterations of the experiment. Some participants express confusion in the wording of our question, which may have altered how they responded to the questions and unknowingly altering our data.
+
+Our error was also calculated to be only positive values despite it being possible for participants to either overestimate or underestimate the ratio of the bars. Since the distributions of this iteration were so close together, it may be helpful in the future to have a bidirectional error statistic to account for some more of the variation in the data.
+
+## Technical Achievements
+
+Our project successfully utilized a combination of different softwares to create, run, and analyze an experiment to see perceptual differences in how people judge ratios with different bar chart styles. We used D3 to create all of our visual stimuli, which was then randomized for each participant using ReVISit.
+
+Our analysis used a combination of Python and the D3 library to successfully create an interactive visual of our experiment data that allows users to see potential trends in the overall data while still getting to look at the results from individual trials via a tooltip and boxplot display.
+
+## Design Achievements
+
+Our experiment was designed to be similar to the Cleaveland McGill experiment, with the visual stimuli designed to be as simple as possible to minimize potential variations that may come with complex designs. The interface for the experiment was also kept simple as a slide tool so that people who weren't as familiar with data visualization could complete our experiment with relative ease.
+
+The results were visualized using D3 to create an interactive experience where users had the distribution data displayed along with points from individual trials. The visuals were colored such that the boxplots were colored with simple blue and black lines and rectangles, and the "selected" rectangle the user hovers over would turn orange so that the user knows what information they're looking at. The data points were also colored in red and green, with lower error shaded green (as green usually signifies a positive outcome) and higher error in red (which usually signifies a negative outcome). The tooltip also displays relevant information about the dataset when hovering over a point (giving trial specific data) and over a box (giving distribution specific data). This gives the user more insight into the results of our experiment and allows them to explore the data more than they would if it was just the visual.
+
+## Some Screenshots
+
+### Experiment Screenshot
+
+![Experiment Screenshot](img/experiment_screenshot.png)
+
+### Visualization Screenshot
+
+![Visualization Screenshot](img/visualization_screenshot.png)
