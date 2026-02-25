@@ -1,28 +1,220 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<div id="container"></div>
-<script type="module">
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A3 Experiment Results</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        #my_dataviz {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div id="my_dataviz"></div>
+    <script>
+        // set up dimensions/margins
+        var margin = {top: 10, right: 30, bottom: 30, left: 40},
+            width = 700 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom
 
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+        // append svg to body of page
+        var svg = d3.select("#my_dataviz")
+            .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+                .attr("transform",
+                    `translate(${margin.left}, ${margin.top})`);
 
-console.log(d3);
+        // read data
+        d3.csv("results/master_results.csv").then( function(data) {
+            // parse numeric field
+            data.forEach(d => d.Log2Error = +d.Log2Error)
 
-// set graph margins
-var margin = {top: 10, right: 30, bottom: 30, left: 40},
-    width = 460 - margin.left - margin.right,
-    height = 400 - margin.top - margin.bottom;
+            // group and compute summary stats (whiskers = nearest non-outlier values)
+            var sumstat = Array.from(
+                d3.group(data, d => d.ChartType),
+                ([key, vals]) => {
+                    const arr = vals.map(v => v.Log2Error).sort(d3.ascending);
+                    const q1 = d3.quantile(arr, .25);
+                    const median = d3.quantile(arr, .5);
+                    const q3 = d3.quantile(arr, .75);
+                    const iqr = q3 - q1;
+                    const lowerFence = q1 - 1.5 * iqr;
+                    const upperFence = q3 + 1.5 * iqr;
 
-// append svg to body of page
-var svg = d3.select("#container")
-    .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-        .attr("transform", `translate(${margin.left}, ${margin.right})`);
+                    // nearest non-outlier min/max (fallback to data min/max)
+                    let min = d3.min(arr.filter(v => v >= lowerFence));
+                    let max = d3.max(arr.filter(v => v <= upperFence));
+                    if (min === undefined) min = d3.min(arr);
+                    if (max === undefined) max = d3.max(arr);
 
-// read data
-d3.csv("results/master_results.csv").then( function(data) {
-    
-})
+                    return { key: key, value: { q1, median, q3, interQuartileRange: iqr, min, max } };
+                }
+            );
 
-</script>
+            // x scale
+            var x = d3.scaleBand()
+                .range([0, width])
+                .domain(sumstat.map(d => d.key))
+                .paddingInner(1)
+                .paddingOuter(.5);
+            svg.append("g")
+                .attr("transform", `translate(0, ${height})`)
+                .call(d3.axisBottom(x));
+
+            // y scale
+            var y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.Log2Error)])
+                .range([height, 0]);
+            svg.append("g").call(d3.axisLeft(y));
+
+            // add y axis label
+            svg
+                .append('text')
+                .attr("x", -height/2 + 15)
+                .attr("y", -30)
+                .attr("text-anchor", "end")
+                .attr("dominant-baseline", "end")
+                .attr("transform", "rotate(-90)")
+                .style("fill", "black")
+                .style("font-size", "10px")
+                .text("Log Base 2 Error")
+
+            // add tooltip
+            const tooltip = d3.select("#my_dataviz")
+                .append("div")
+                .style("position", "absolute")
+                .style("opacity", 0)
+                .attr("class", "tooltip")
+                .style("background-color", "white")
+                .style("border", "solid")
+                .style("border-width", "1px")
+                .style("border-radius", "5px")
+                .style("padding", "10px")
+
+            // add mouse functions
+            const mouseover_box = function(event, d) {
+                tooltip
+                    .style("opacity", 1)
+                d3.select(this)
+                    .style("fill", "orange")
+            }
+
+            const mouseover_point = function(event, d) {
+                tooltip
+                    .style("opacity", 1)
+                d3.select(this)
+                    .style("opacity", 1)
+            }
+
+            const mousemove_box = function(event, d) {
+                tooltip
+                    .html(
+                        "Min: " + d.value.min +
+                        "<br>1st Quartile: " + d.value.q1 +
+                        "<br>Median: " + d.value.median +
+                        "<br>3rd Quartile: " + d.value.q3 +
+                        "<br>Max: " + d.value.max
+                    )
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY + 10) + "px")
+            }
+
+            const mousemove_point = function(event, d) {
+                tooltip
+                    .html(
+                        "Participant ID: " + d.ParticipantID +
+                        "<br>True Value: " + d.TruePercent +
+                        "<br>Guessed Value: " + d.ReportedPercent +
+                        "<br>Error: " + d.AbsError + " percent off" +
+                        "<br>Log Error: " + d.Log2Error
+                    )
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY + 10) + "px")
+            }
+
+            const mouseleave_box = function(event, d) {
+                tooltip
+                    .transition()
+                    .duration(200)
+                    .style("opacity", 0)
+                d3.select(this)
+                    .style("fill", "steelblue")
+            }
+
+            const mouseleave_point = function(event, d) {
+                tooltip
+                    .transition()
+                    .duration(200)
+                    .style("opacity", 0)
+                d3.select(this)
+                    .style("opacity", 0.5)
+            }
+
+            // vertical lines (use d.value.min / d.value.max)
+            svg.selectAll("vertlines")
+                .data(sumstat)
+                .enter()
+                .append("line")
+                .attr("x1", d => x(d.key))
+                .attr("x2", d => x(d.key))
+                .attr("y1", d => y(d.value.min))
+                .attr("y2", d => y(d.value.max))
+                .attr("stroke", "black")
+                .attr("stroke-width", 1);
+
+            var boxWidth = Math.min(50, x.bandwidth() || 50);
+
+            // boxes
+            svg.selectAll("boxes")
+                .data(sumstat)
+                .enter()
+                .append("rect")
+                    .attr("x", d => x(d.key) - boxWidth / 2)
+                    .attr("y", d => y(d.value.q3))
+                    .attr("height", d => y(d.value.q1) - y(d.value.q3))
+                    .attr("width", boxWidth)
+                    .attr("stroke", "black")
+                    .style("fill", "steelblue")
+                .on("mouseover", mouseover_box)
+                .on("mousemove", mousemove_box)
+                .on("mouseleave", mouseleave_box)
+            
+            // medians
+            svg.selectAll("medianLines")
+                .data(sumstat)
+                .enter()
+                .append("line")
+                    .attr("x1", d => x(d.key) - boxWidth / 2)
+                    .attr("x2", d => x(d.key) + boxWidth / 2)
+                    .attr("y1", d => y(d.value.median))
+                    .attr("y2", d => y(d.value.median))
+                    .attr("stroke", "black")
+                    .attr("stroke-width", 2);
+
+            // set up point color
+            var colorScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.Log2Error)])
+                .range(["green", "red"])
+
+            // points w/ jitter
+            var jitterWidth = Math.min(30, x.bandwidth() || 30);
+            svg.selectAll("indPoints")
+                .data(data)
+                .enter()
+                .append("circle")
+                    .attr("cx", d => x(d.ChartType) - jitterWidth / 2 + Math.random() * jitterWidth)
+                    .attr("cy", d => y(d.Log2Error))
+                    .attr("r", 4)
+                    .style("fill", d => colorScale(d.Log2Error))
+                    .style("stroke", "black")
+                    .style("opacity", 0.5)
+                .on("mouseover", mouseover_point)
+                .on("mousemove", mousemove_point)
+                .on("mouseleave", mouseleave_point)
+            }).catch(err => console.error("CSV load/parse error:", err));
+    </script>
+</body>
